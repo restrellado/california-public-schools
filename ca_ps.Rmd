@@ -104,9 +104,11 @@ That's it! Finally, we'll write the cleaned file as a csv.
 write_csv(cde_schls, "data/cleaned_cde_schools.csv")
 ```
   
-## Sample Plot 
+## Sample Plot: Top Ten Biggest School Districts 
 
 ```{r}
+# Top ten biggest school districts in CA 
+
 top_ten <- cde_schls %>% 
   count(District) %>% 
   filter(min_rank(-n) <= 10) %>% 
@@ -120,3 +122,24 @@ ggplot(data = top_ten, aes(x = reorder(District, n), y = n)) +
        x = "",
        y = "Schools")
 ```
+
+## Sample Plot: Interactive Map of Ten Oldest Schools 
+
+```{r message = F, warning = F}
+# A map of the ten oldest schools in CA  
+
+library(leaflet)
+library(lubridate)
+
+ten_early <- cde_schls %>% 
+  select(School, Date = OpenDate, lat = Latitude, lon = Longitude) %>% 
+  mutate(label = paste0(year(Date), ": ", School)) %>% 
+  filter(min_rank(Date) <= 10) %>% 
+  arrange(Date)
+
+ten_early %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(popup = ten_early$label)
+```
+
