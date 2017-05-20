@@ -96,7 +96,7 @@ nas <- cde_schls %>%
 kable(nas)
 ```
   
-## Write the File as a CVS 
+## Write the File as a CSV 
 
 That's it! Finally, we'll write the cleaned file as a csv. 
 
