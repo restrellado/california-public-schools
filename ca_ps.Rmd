@@ -36,7 +36,6 @@ project we'll use the text format.
 # Load the required packages
 
 library(tidyverse)
-library(readxl)
 library(knitr)
 library(stringr)
 ```
