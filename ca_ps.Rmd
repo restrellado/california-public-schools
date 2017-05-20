@@ -1,0 +1,123 @@
+---
+title: "California Public Schools Lookup Table"
+author: "Ryan Estrellado"
+date: "5/19/2017"
+output: html_document
+---
+
+## Purpose 
+
+The purpose of this R Notebook is to document the process used to clean the 
+California Department of Education's public database of public schools. This 
+can be a very useful dataset for data scientists, analysts, or school staff, 
+but the format of the dataset may be overwhelming to those who don't typically 
+work with a dataset this size or with this many columns. In particular, the 
+dataset uses the longer fourteen digit school ID code, which can make it 
+difficult for users to merge with a dataset that uses the commonly seen seven 
+digit school ID code. I hope that once this dataset is cleaned, it will be a 
+little easier to use for work projects, including:  
+
+- Making interactive `leaflet` maps using the longitude and latitude files 
+- Merging with other datasets, such as SEIS  
+- Visualizing itinerant school assignments  
+
+## Reading in the Data 
+
+The dataset we'll be using can be found on the [California Department of 
+Education's website](http://www.cde.ca.gov/ds/si/ds/pubschls.asp). A description of all the variables can also be found 
+[on the CDE website](http://www.cde.ca.gov/ds/si/ds/fspubschls.asp). This data 
+is updated daily, so we'll read the file in directly from the URL. 
+
+First we'll start with reading in the data. At the time of writing, CDE makes 
+the data available in a text format and as an excel file format. For this 
+project we'll use the text format. 
+
+```{r message = F}
+# Load the required packages
+
+library(tidyverse)
+library(readxl)
+library(knitr)
+library(stringr)
+```
+
+```{r message = F, warning = F}
+original <- read_tsv("ftp://ftp.cde.ca.gov/demo/schlname/pubschls.txt")
+```
+
+You can see here that the original feel is big, both in rows and columns. 
+
+```{r comment = NULL}
+dim(original)
+```
+
+## Cleaning the Data
+
+We'll clean the data up by doing the following: 
+
+- Filter the `StatusType` column so that we only have `Active` schools  
+- Remove code fields if there is a more helpful description field  
+- Remove other columns school staff probably won't need when merging with this 
+file  
+
+```{r}
+cde_schls <- original %>% 
+  filter(StatusType == "Active") %>% 
+  select(-c(AdmFName1:AdmEmail3, FundingType, Magnet, StatusType, Street:State, DOC, CharterNum, SOC, EdOpsCode, EILCode))
+```
+
+Users of this data file will typically need the seven digit CDS code and not the 
+longer fourteen digit code. To make it easier to merge using the seven digit 
+code, we'll create a new column called `Short_CDS`. 
+
+```{r}
+cde_schls <- cde_schls %>% 
+  mutate(Short_CDS = str_sub(CDSCode, 8, 20)) %>% 
+  select(CDSCode, Short_CDS, everything())
+```
+
+```{r comment = NULL}
+# Preview the cleaned dataset
+
+cde_schls
+```
+
+
+## Checking for Missing Values 
+
+It's helpful to know if there are missing values in any of the more useful 
+fields. The following are the percentage of `NA`s in some of the fields. 
+
+```{r}
+nas <- cde_schls %>% 
+  summarise(CDSCode = mean(is.na(CDSCode)), Short_CDS = mean(is.na(Short_CDS)),
+            School = mean(is.na(School)), Latitude = mean(is.na(Latitude)), 
+            Longitude = mean(is.na(Longitude)))
+
+kable(nas)
+```
+
+## Write the File as a CVS 
+
+That's it! Finally, we'll write the cleaned file as a csv. 
+
+```{r}
+write_csv(cde_schls, "data/cleaned_cde_schools.csv")
+```
+
+## Sample Plot 
+
+```{r}
+top_ten <- cde_schls %>% 
+  count(District) %>% 
+  filter(min_rank(-n) <= 10) %>% 
+  arrange(desc(n))
+
+ggplot(data = top_ten, aes(x = reorder(District, n), y = n)) +
+  geom_bar(stat = "identity", fill = "cyan4", alpha = .75) + 
+  coord_flip() + 
+  labs(title = "Top Ten Biggest School Districts in California", 
+       subtitle = "Data: California Department of Education",
+       x = "",
+       y = "Schools")
+```
