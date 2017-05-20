@@ -1,0 +1,158 @@
+---
+title: "How to Use the CDE Public Schools Directory"
+author: "Ryan Estrellado"
+date: "5/20/2017"
+output: ioslides_presentation
+---
+
+## The Problem 
+
+The California Department of Education makes a dataset of public schools 
+available [on their website](http://www.cde.ca.gov/ds/si/ds/pubschls.asp), but the dataset can be a little hard to use. In 
+particular, CDE uses a fourteen digit school ID. This makes it inconvenient to 
+merge with datasets like CASEMIS and SEIS, which use the shorter seven digit 
+school ID. 
+
+## The Problem (continued)  
+
+The directory of active schools contains over 11,000 schools, so doing this 
+transformation by hand can be time and processor intensive using more 
+conventional tools. 
+
+## Proposed Solution 
+
+Using a script to clean and output the dataset accomplishes two things: 
+
+- It efficiently and accurately transforms the fourteen digit school ID code to 
+the more commonly used seven digit ID code 
+- Since the script reads the data in directly from the CDE website, the script 
+makes it very easy to download and clean a fresh version whenever needed  
+- The cleaned dataset can be hosted on GitHub for others to use 
+
+## Use Cases 
+
+Once the dataset is cleaned, it can be used in a variety of ways. Some examples 
+are: 
+
+- Using it as a lookup table in Excel or Access to efficiently convert school 
+IDs in datasets like CASEMIS into actual school names  
+- Building interactive maps to evaluate and plan itinerant service provider caseloads, classrooms, or any system that requires the visualization of school 
+locations 
+
+## The Original Dataset  
+
+The original dataset has 49 columns. Note the fourteen digit code in the 
+`CDSCode` field. 
+
+```{r message = F, echo = F, warning = F, comment = NULL}
+# Load the required packages
+
+library(tidyverse)
+library(knitr)
+library(stringr)
+```
+
+```{r echo = F}
+opts_chunk$set(message = F, echo = F, warning = F, comment = NULL)
+```
+
+```{r}
+original <- read_tsv("ftp://ftp.cde.ca.gov/demo/schlname/pubschls.txt")  
+
+head(original, n = 5)
+```
+
+## The Cleaned Dataset  
+
+The cleaned dataset removes 21 columns and adds a column for the seven digit 
+school ID, `Short_CDS`: 
+
+```{r}
+cde_schls <- original %>% 
+  filter(StatusType == "Active") %>% 
+  select(-c(AdmFName1:AdmEmail3, FundingType, Magnet, StatusType, Street:State, DOC, CharterNum, SOC, EdOpsCode, EILCode))
+
+cde_schls <- cde_schls %>% 
+  mutate(Short_CDS = str_sub(CDSCode, 8, 20)) %>% 
+  select(CDSCode, Short_CDS, everything()) 
+
+head(cde_schls, n = 5)
+```
+
+## Download the Cleaned Dataset 
+
+You can download the cleaned dataset by right clicking and selecting download 
+linked file: 
+
+[cleaned_cde_schools.csv](https://github.com/restrellado/california-public-schools/raw/master/data/cleaned_cde_schools.csv) 
+
+## Ways to Use the Data 
+
+The following are some examples of how this data can be used. 
+
+## Top Ten Biggest Districts 
+
+```{r}
+# Top ten biggest school districts in CA 
+
+top_ten <- cde_schls %>% 
+  count(District) %>% 
+  filter(min_rank(-n) <= 10) %>% 
+  arrange(desc(n))
+
+ggplot(data = top_ten, aes(x = reorder(District, n), y = n)) +
+  geom_bar(stat = "identity", fill = "cyan4", alpha = .75) + 
+  coord_flip() + 
+  labs(title = "Top Ten Biggest School Districts in California", 
+       subtitle = "Data: California Department of Education",
+       x = "",
+       y = "Schools")
+```
+
+## Top Ten Oldest Schools 
+
+Click on the markers for more information. 
+
+```{r}
+# A map of the ten oldest schools in CA  
+
+library(leaflet)
+library(lubridate)
+
+ten_early <- cde_schls %>% 
+  select(School, Date = OpenDate, lat = Latitude, lon = Longitude) %>% 
+  mutate(label = paste0(year(Date), ": ", School)) %>% 
+  filter(min_rank(Date) <= 10) %>% 
+  arrange(Date)
+
+ten_early %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(popup = ten_early$label)
+```
+
+## Service Provider Caseloads
+
+This map uses simulated data. The size of the circle represents the size of the
+caseload. 
+
+```{r}
+library(leaflet)
+set.seed(2)
+
+pick <- sample(c(1:length(cde_schls)), 10, replace = F)
+
+schools <- cde_schls$School[pick]
+lat <- cde_schls$Latitude[pick]
+lon <- cde_schls$Longitude[pick]
+caseload <- sample(c(15:50), 10, replace = T)
+providers <- paste0("Some DIS Provider ", c(1:10), " ", "caseload: ", caseload) 
+
+clp <- data.frame(schools, caseload, providers, lat, lon) 
+
+clp %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addCircleMarkers(popup = clp$providers, radius = .50 * (clp$caseload))
+```
+
