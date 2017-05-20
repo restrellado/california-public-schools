@@ -20,7 +20,7 @@ little easier to use for work projects, including:
 - Making interactive `leaflet` maps using the longitude and latitude files 
 - Merging with other datasets, such as SEIS  
 - Visualizing itinerant school assignments  
-
+  
 ## Reading in the Data 
 
 The dataset we'll be using can be found on the [California Department of 
@@ -50,7 +50,7 @@ You can see here that the original feel is big, both in rows and columns.
 ```{r comment = NULL}
 dim(original)
 ```
-
+  
 ## Cleaning the Data
 
 We'll clean the data up by doing the following: 
@@ -81,8 +81,7 @@ cde_schls <- cde_schls %>%
 
 cde_schls
 ```
-
-
+  
 ## Checking for Missing Values 
 
 It's helpful to know if there are missing values in any of the more useful 
@@ -96,7 +95,7 @@ nas <- cde_schls %>%
 
 kable(nas)
 ```
-
+  
 ## Write the File as a CVS 
 
 That's it! Finally, we'll write the cleaned file as a csv. 
@@ -104,7 +103,7 @@ That's it! Finally, we'll write the cleaned file as a csv.
 ```{r}
 write_csv(cde_schls, "data/cleaned_cde_schools.csv")
 ```
-
+  
 ## Sample Plot 
 
 ```{r}
