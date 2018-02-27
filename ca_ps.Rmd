@@ -2,7 +2,7 @@
 title: "California Public Schools Lookup Table"
 author: "Ryan Estrellado"
 date: "5/19/2017"
-output: html_document
+output: github_document
 ---
 
 ## Purpose 
@@ -114,7 +114,7 @@ top_ten <- cde_schls %>%
   arrange(desc(n))
 
 ggplot(data = top_ten, aes(x = reorder(District, n), y = n)) +
-  geom_bar(stat = "identity", fill = "cyan4", alpha = .75) + 
+  geom_bar(stat = "identity", fill = "violetred3", alpha = .75) + 
   coord_flip() + 
   labs(title = "Top Ten Biggest School Districts in California", 
        subtitle = "Data: California Department of Education",
