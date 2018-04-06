@@ -1,5 +1,6 @@
 # California Public Schools: Cleaned Data Set  
 
+PURPOSE:
 This repository is for cleaning the California Department of Education's database 
 of public schools. It can then be used as a lookup table or for making 
 interactive maps. The original dataset is available publicly from [CDE's 
